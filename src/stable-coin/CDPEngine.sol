@@ -4,15 +4,7 @@ pragma solidity ^0.8.24;
 
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
-
-library Math {
-    function add(uint256 x, int256 y) internal pure returns (uint256 z) {
-        // z = x + uint256(y);
-        // require(y >= 0 || z <= x);
-        // require(y <= 0 || z >= x);
-        return y >= 0 ? x + uint256(y) : x - uint256(y);
-    }
-}
+import {Math} from "../lib/Math.sol";
 
 // Vat
 // CDP stands for Collateralized Debt Positon
@@ -20,6 +12,9 @@ contract CDPEngine is Auth, CircuitBreaker {
     // Ilk
     struct Collateral {
         // Art - total Normalised Debt [wad]
+        // di = delta debt at time i
+        // ri = rate_acc at time i
+        // Art = d0 / r0 + d1 / r1 + d2 / r2 ...
         uint256 debt;
         // rate - Accumulated Rates [ray]
         uint256 rate_acc;
@@ -31,7 +26,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         uint256 min_debt;
     }
 
-    // Urn
+    // Urn - vault (CDP)
     struct Position {
         // ink - Locked Collateral [wad]
         uint256 collateral;
@@ -56,6 +51,9 @@ contract CDPEngine is Auth, CircuitBreaker {
 
     // Line - Total Debt Ceiling [rad]
     uint256 public sys_max_debt;
+
+    // global debt
+    uint256 public sys_debt;
 
     // init
     function init(bytes32 col_type) external view auth {
@@ -106,5 +104,66 @@ contract CDPEngine is Auth, CircuitBreaker {
 
     function modify_collateral_balance(bytes32 col_type, address user, int256 wad) external auth {
         gem[col_type][user] = Math.add(gem[col_type][user], wad);
+    }
+
+    /// @notice Modify the CDP
+    // frob(i, u, v, w, dink, dart)
+    // - modify position of user u
+    // - using gem from user v
+    // - and creating coin for user w
+    // dink: change in amount of collateral
+    // dart: change in amount of debt
+    function modify_cdp(
+        // i - collateral id
+        bytes32 col_type,
+        // u - address that maps to CDP
+        address cdp,
+        // v - source of gem
+        address gem_src,
+        // w - destination of coin
+        address coin_dst,
+        // dink - delta collateral
+        int256 delta_col,
+        // dart - delta debt
+        int256 delta_debt
+    ) external not_stopped {
+        Position memory pos = positions[col_type][cdp];
+        Collateral memory col = collaterals[col_type];
+        // collateral(ilk) has been initialised
+        require(col.rate_acc != 0, "collateral not initialized");
+
+        pos.collateral = Math.add(pos.collateral, delta_col);
+        pos.debt = Math.add(pos.debt, delta_col);
+        col.debt = Math.add(col.debt, delta_debt);
+
+        // coin [rad] = col.rate_acc * debt
+        int256 delta_coin = Math.mul(col.rate_acc, delta_debt); // dtab
+        uint256 coin_debt = col.rate_acc * pos.debt; // tab
+        sys_debt = Math.add(sys_debt, delta_coin);
+
+        // either debt has decreased, or debt ceilings are not exceeded
+        require(
+            delta_debt <= 0 || (col.debt * col.rate_acc <= col.max_debt && sys_debt <= sys_max_debt),
+            "Vat/ceiling-exceeded"
+        );
+        // postion(urn) is either less risky than before, or it is safe
+        require((delta_debt <= 0 && delta_col >= 0) || coin_debt <= pos.collateral * col.spot, "Vat/not-safe");
+        // position(urn) is either more safe, or the owner consents
+        require((delta_debt <= 0 && delta_col >= 0) || can_modify_account(cdp, msg.sender), "Vat/not-allowed-u");
+        // collateral src consents
+        require(delta_col <= 0 || can_modify_account(gem_src, msg.sender), "Vat/not-allowed-v");
+        // debt dst consents
+        require(delta_debt >= 0 || can_modify_account(coin_dst, msg.sender), "Vat/not-allowed-w");
+        // position(urn) has no debt, or a non-dusty amount
+        require(pos.debt == 0 || coin_debt >= col.min_debt, "Vat/dust");
+
+        // Moving col from local gem to pos, hence oppiste sign
+        // local collateral -> - gem, + pos (delta_debt >= 0)
+        // free collateral -> + gem, - pos (delta_debt <= 0)
+        gem[col_type][gem_src] = Math.sub(gem[col_type][gem_src], delta_col);
+        coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
+
+        positions[col_type][cdp] = pos;
+        collaterals[col_type] = col;
     }
 }
