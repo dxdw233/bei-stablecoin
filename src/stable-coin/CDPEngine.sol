@@ -166,4 +166,18 @@ contract CDPEngine is Auth, CircuitBreaker {
         positions[col_type][cdp] = pos;
         collaterals[col_type] = col;
     }
+
+    function fold(bytes32 col_type, address coin_dst, int256 delta_rate) external auth not_stopped {
+        Collateral storage col = collaterals[col_type];
+        col.rate_acc = Math.add(col.rate_acc, delta_rate);
+        // old total debt = col.rate_acc * col.debt
+        // new total debt = (col.rate_acc + delta_rate) * col.debt
+        // delta_coin = new total debt - old total debt
+        //            = (col.rate_acc + delta_rate) * col.debt
+        //             - col.rate_acc * col.debt
+        //            = col.debt * delta_rate
+        int256 delta_coin = Math.mul(col.debt, delta_rate);
+        coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
+        sys_debt = Math.add(sys_debt, delta_coin);
+    }
 }
