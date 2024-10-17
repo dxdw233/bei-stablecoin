@@ -33,4 +33,8 @@ library Math {
         require(int256(x) >= 0);
         z = int256(x) * y;
     }
+
+    function rdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = x * RAY / y;
+    }
 }
