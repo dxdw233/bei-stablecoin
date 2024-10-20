@@ -102,6 +102,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         coin[dst] += rad;
     }
 
+    // slip
     function modify_collateral_balance(bytes32 col_type, address user, int256 wad) external auth {
         gem[col_type][user] = Math.add(gem[col_type][user], wad);
     }
@@ -167,6 +168,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         collaterals[col_type] = col;
     }
 
+    // fold
     function fold(bytes32 col_type, address coin_dst, int256 delta_rate) external auth not_stopped {
         Collateral storage col = collaterals[col_type];
         col.rate_acc = Math.add(col.rate_acc, delta_rate);

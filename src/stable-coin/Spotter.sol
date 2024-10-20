@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Auth} from "../lib/Auth.sol";
-import {Math} from "../lib/Math.sol";
+import "../lib/Math.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
 
 // VatLike
@@ -43,7 +43,7 @@ contract Spotter is Auth, CircuitBreaker {
     constructor(address _cdp_engine) {
         cdp_engine = ICDPEngine(_cdp_engine);
         // represent 1 dollar [ray]
-        par = 1 * 10 ** 27;
+        par = 1 * RAY;
     }
 
     // --- Administration ---

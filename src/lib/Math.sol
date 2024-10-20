@@ -37,4 +37,46 @@ library Math {
     function rdiv(uint256 x, uint256 y) internal pure returns (uint256 z) {
         z = x * RAY / y;
     }
+
+    function rpow(uint256 x, uint256 n, uint256 b) internal pure returns (uint256 z) {
+        assembly {
+            switch x
+            case 0 {
+                switch n
+                case 0 { z := b }
+                default { z := 0 }
+            }
+            default {
+                switch mod(n, 2)
+                case 0 { z := b }
+                default { z := x }
+                let half := div(b, 2) // for rounding.
+                for { n := div(n, 2) } n { n := div(n, 2) } {
+                    let xx := mul(x, x)
+                    if iszero(eq(div(xx, x), x)) { revert(0, 0) }
+                    let xxRound := add(xx, half)
+                    if lt(xxRound, xx) { revert(0, 0) }
+                    x := div(xxRound, b)
+                    if mod(n, 2) {
+                        let zx := mul(z, x)
+                        if and(iszero(iszero(x)), iszero(eq(div(zx, x), z))) { revert(0, 0) }
+                        let zxRound := add(zx, half)
+                        if lt(zxRound, zx) { revert(0, 0) }
+                        z := div(zxRound, b)
+                    }
+                }
+            }
+        }
+    }
+
+    function rmul(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        z = x * y;
+        require(y == 0 || z / y == x);
+        z = z / RAY;
+    }
+
+    function diff(uint256 x, uint256 y) internal pure returns (int256 z) {
+        z = int256(x) - int256(y);
+        require(int256(x) >= 0 && int256(y) >= 0);
+    }
 }
