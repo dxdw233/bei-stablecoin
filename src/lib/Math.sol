@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity ^0.8.24;
+pragma solidity 0.8.24;
 
 uint256 constant WAD = 10 ** 28;
 uint256 constant RAY = 10 ** 27;

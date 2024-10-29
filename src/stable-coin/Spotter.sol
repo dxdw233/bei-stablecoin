@@ -1,20 +1,11 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity ^0.8.24;
+pragma solidity 0.8.24;
 
 import {Auth} from "../lib/Auth.sol";
 import "../lib/Math.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
-
-// VatLike
-interface ICDPEngine {
-    // file
-    function set(bytes32, bytes32, uint256) external;
-}
-
-// PipLike
-interface IPriceFeed {
-    function peek() external returns (uint256, bool); // [wad]
-}
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
+import {IPriceFeed} from "../interfaces/IPriceFeed.sol";
 
 // Spot
 contract Spotter is Auth, CircuitBreaker {
@@ -50,19 +41,19 @@ contract Spotter is Auth, CircuitBreaker {
     // file
     function set(bytes32 col_type, bytes32 key, address pip_) external auth not_stopped {
         if (key == "pip") collaterals[col_type].pip = IPriceFeed(pip_);
-        else revert("Spotter/file-unrecognized-param");
+        else revert("unrecognized-param");
     }
 
     // file
     function set(bytes32 key, uint256 data) external auth not_stopped {
         if (key == "par") par = data;
-        else revert("Spotter/file-unrecognized-param");
+        else revert("unrecognized-param");
     }
 
     // file
     function set(bytes32 col_type, bytes32 key, uint256 data) external auth not_stopped {
         if (key == "liquidation_ratio") collaterals[col_type].liquidation_ratio = data;
-        else revert("Spotter/file-unrecognized-param");
+        else revert("unrecognized-param");
     }
 
     // --- Update value ---

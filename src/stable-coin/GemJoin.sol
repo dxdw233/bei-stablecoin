@@ -1,23 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // This contract is part of the `join.sol` of dss
 
-pragma solidity ^0.8.24;
+pragma solidity 0.8.24;
 
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
-
-// GemLike
-interface IGem {
-    function decimals() external view returns (uint8);
-    function transfer(address, uint256) external returns (bool);
-    function transferFrom(address, address, uint256) external returns (bool);
-}
+import {IGem} from "../interfaces/IGem.sol";
+import {ICDPEngine} from "../interfaces/ICDPEngine.sol";
 
 // VatLike
-interface ICDPEngine {
-    // move
-    function modify_collateral_balance(bytes32, address, int256) external;
-}
 
 // GemJoin - for well behaved ERC20 token, with simple transfer semantics
 contract GemJoin is Auth, CircuitBreaker {

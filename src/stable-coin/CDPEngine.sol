@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-pragma solidity ^0.8.24;
+pragma solidity 0.8.24;
 
 import {Auth} from "../lib/Auth.sol";
 import {CircuitBreaker} from "../lib/CircuitBreaker.sol";
@@ -97,7 +97,7 @@ contract CDPEngine is Auth, CircuitBreaker {
 
     // move
     function transfer_coin(address src, address dst, uint256 rad) external {
-        require(can_modify_account(src, msg.sender), "Vat/not-allowed");
+        require(can_modify_account(src, msg.sender), "not-allowed");
         coin[src] -= rad;
         coin[dst] += rad;
     }
@@ -144,19 +144,18 @@ contract CDPEngine is Auth, CircuitBreaker {
 
         // either debt has decreased, or debt ceilings are not exceeded
         require(
-            delta_debt <= 0 || (col.debt * col.rate_acc <= col.max_debt && sys_debt <= sys_max_debt),
-            "Vat/ceiling-exceeded"
+            delta_debt <= 0 || (col.debt * col.rate_acc <= col.max_debt && sys_debt <= sys_max_debt), "ceiling-exceeded"
         );
         // postion(urn) is either less risky than before, or it is safe
-        require((delta_debt <= 0 && delta_col >= 0) || coin_debt <= pos.collateral * col.spot, "Vat/not-safe");
+        require((delta_debt <= 0 && delta_col >= 0) || coin_debt <= pos.collateral * col.spot, "not-safe");
         // position(urn) is either more safe, or the owner consents
-        require((delta_debt <= 0 && delta_col >= 0) || can_modify_account(cdp, msg.sender), "Vat/not-allowed-u");
+        require((delta_debt <= 0 && delta_col >= 0) || can_modify_account(cdp, msg.sender), "not-allowed-u");
         // collateral src consents
-        require(delta_col <= 0 || can_modify_account(gem_src, msg.sender), "Vat/not-allowed-v");
+        require(delta_col <= 0 || can_modify_account(gem_src, msg.sender), "not-allowed-v");
         // debt dst consents
-        require(delta_debt >= 0 || can_modify_account(coin_dst, msg.sender), "Vat/not-allowed-w");
+        require(delta_debt >= 0 || can_modify_account(coin_dst, msg.sender), "not-allowed-w");
         // position(urn) has no debt, or a non-dusty amount
-        require(pos.debt == 0 || coin_debt >= col.min_debt, "Vat/dust");
+        require(pos.debt == 0 || coin_debt >= col.min_debt, "min_debt");
 
         // Moving col from local gem to pos, hence oppiste sign
         // local collateral -> - gem, + pos (delta_debt >= 0)
@@ -182,4 +181,7 @@ contract CDPEngine is Auth, CircuitBreaker {
         coin[coin_dst] = Math.add(coin[coin_dst], delta_coin);
         sys_debt = Math.add(sys_debt, delta_coin);
     }
+
+    // suck
+    function mint(address debt_dst, address coin_dst, uint256 rad) external {}
 }
