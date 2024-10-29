@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity ^0.8.24;
+pragma solidity 0.8.24;
 
+// VatLike
 interface ICDPEngine {
     // Ilk
     struct Collateral {
@@ -110,4 +111,7 @@ interface ICDPEngine {
 
     // fold
     function fold(bytes32 col_type, address coin_dst, int256 delta_rate) external;
+
+    // suck
+    function mint(address debt_dst, address coin_dst, uint256 rad) external;
 }
