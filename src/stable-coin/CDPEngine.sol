@@ -49,10 +49,16 @@ contract CDPEngine is Auth, CircuitBreaker {
     // owner => user => boolean
     mapping(address => mapping(address => bool)) public can;
 
+    // sin - unbacked DAI
+    mapping(address => uint256) unbacked_debt;
+
+    // vice - total unbacked DAI
+    uint256 public sys_unbacked_debt;
+
     // Line - Total Debt Ceiling [rad]
     uint256 public sys_max_debt;
 
-    // global debt
+    // global debt / total DAI issued
     uint256 public sys_debt;
 
     // init
@@ -182,6 +188,20 @@ contract CDPEngine is Auth, CircuitBreaker {
         sys_debt = Math.add(sys_debt, delta_coin);
     }
 
+    // heal
+    function burn(uint256 rad) external {
+        address debt_dst = msg.sender;
+        unbacked_debt[debt_dst] -= rad;
+        coin[debt_dst] -= rad;
+        sys_unbacked_debt -= rad;
+        sys_debt -= rad;
+    }
+
     // suck
-    function mint(address debt_dst, address coin_dst, uint256 rad) external {}
+    function mint(address debt_dst, address coin_dst, uint256 rad) external auth {
+        unbacked_debt[debt_dst] += rad;
+        coin[coin_dst] += rad;
+        sys_unbacked_debt += rad;
+        sys_debt += rad;
+    }
 }
