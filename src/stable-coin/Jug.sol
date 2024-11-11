@@ -56,7 +56,7 @@ contract Jug is Auth {
     }
 
     // --- Stability Fee Collection ---
-    //drip
+    // drip
     function collect_stability_fee(bytes32 col_type) external returns (uint256 rate) {
         require(block.timestamp >= collaterals[col_type].updated_at, "invalid-timestamp");
         ICDPEngine.Collateral memory col = cdp_engine.collaterals(col_type);

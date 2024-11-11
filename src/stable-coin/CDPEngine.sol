@@ -204,4 +204,23 @@ contract CDPEngine is Auth, CircuitBreaker {
         sys_unbacked_debt += rad;
         sys_debt += rad;
     }
+
+    // grab
+    function grab(bytes32 col_type, address cdp, address gem_src, address debt_dst, int256 delta_col, int256 delta_debt)
+        external
+        auth
+    {
+        Position memory pos = positions[col_type][cdp];
+        Collateral memory col = collaterals[col_type];
+
+        pos.collateral = Math.add(pos.collateral, delta_col);
+        pos.debt = Math.add(pos.debt, delta_debt);
+        col.debt = Math.add(col.debt, delta_debt);
+
+        int256 delta_coin = Math.mul(col.rate_acc, delta_debt);
+
+        gem[col_type][gem_src] = Math.sub(gem[col_type][gem_src], delta_col);
+        unbacked_debt[debt_dst] = Math.sub(unbacked_debt[debt_dst], delta_coin);
+        sys_unbacked_debt = Math.sub(sys_unbacked_debt, delta_coin);
+    }
 }
